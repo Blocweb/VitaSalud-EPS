@@ -11,12 +11,16 @@ import { CalendarDays, Plus, Clock, Stethoscope, X, RefreshCw, AlertTriangle, Ch
 import { toast } from 'sonner@2.0.3';
 import { appointmentsApi, getApiErrorMessage, patientsApi, type Appointment } from '../../lib/api';
 
+/** Valores del enum appointment_status en PostgreSQL */
+type AppointmentStatus = 'pending' | 'confirmed' | 'in_progress' | 'completed' | 'cancelled' | 'no_show';
+
 interface Cita {
   id: string;
   fecha: string;
   hora: string;
   medico: string;
   especialidad: string;
+  status: AppointmentStatus | string;
   estado: string;
   motivo: string;
 }
@@ -27,21 +31,41 @@ const horasDisponibles = [
   '4:00 PM', '4:30 PM', '5:00 PM',
 ];
 
-const estadoColors: Record<string, string> = {
-  'Confirmada': 'bg-[#E8F5E9] text-[#43A047]',
-  'Pendiente': 'bg-[#FFF8E1] text-[#FF8F00]',
-  'Completada': 'bg-[#E3F2FD] text-[#1E88E5]',
-  'Cancelada': 'bg-[#FFEBEE] text-[#E53935]',
-  'Reprogramada': 'bg-[#F3E5F5] text-[#8E24AA]',
-};
-
 const statusLabel: Record<string, string> = {
   pending: 'Pendiente',
-  scheduled: 'Confirmada',
   confirmed: 'Confirmada',
+  in_progress: 'En curso',
   completed: 'Completada',
   cancelled: 'Cancelada',
+  no_show: 'No asistio',
 };
+
+const estadoColors: Record<string, string> = {
+  Pendiente: 'bg-[#FFF8E1] text-[#FF8F00]',
+  Confirmada: 'bg-[#E8F5E9] text-[#43A047]',
+  'En curso': 'bg-[#E3F2FD] text-[#1E88E5]',
+  Completada: 'bg-[#E3F2FD] text-[#1E88E5]',
+  Cancelada: 'bg-[#FFEBEE] text-[#E53935]',
+  'No asistio': 'bg-[#FFEBEE] text-[#E53935]',
+};
+
+const filterOptions: { value: string; label: string }[] = [
+  { value: 'all', label: 'Todas' },
+  { value: 'pending', label: 'Pendientes' },
+  { value: 'confirmed', label: 'Confirmadas' },
+  { value: 'in_progress', label: 'En curso' },
+  { value: 'completed', label: 'Completadas' },
+  { value: 'cancelled', label: 'Canceladas' },
+  { value: 'no_show', label: 'No asistio' },
+];
+
+function getStatusLabel(status: string) {
+  return statusLabel[status] || status;
+}
+
+function canModifyAppointment(status: string) {
+  return status === 'pending' || status === 'confirmed';
+}
 
 const formatApiDate = (value: string) => value?.slice(0, 10) || '';
 
@@ -67,15 +91,19 @@ const toApiTime = (value: string) => {
   return `${String(hours).padStart(2, '0')}:${minutes}`;
 };
 
-const mapAppointment = (appointment: Appointment): Cita => ({
-  id: appointment.id,
-  fecha: formatApiDate(appointment.appointment_date),
-  hora: formatApiTime(appointment.appointment_time),
-  medico: appointment.doctor_name || 'Medico asignado',
-  especialidad: appointment.specialization || appointment.appointment_type || 'Consulta',
-  estado: statusLabel[appointment.status] || appointment.status,
-  motivo: appointment.chief_complaint || appointment.appointment_type || 'No especificado',
-});
+const mapAppointment = (appointment: Appointment): Cita => {
+  const status = appointment.status || 'pending';
+  return {
+    id: appointment.id,
+    fecha: formatApiDate(appointment.appointment_date),
+    hora: formatApiTime(appointment.appointment_time),
+    medico: appointment.doctor_name || 'Medico asignado',
+    especialidad: appointment.specialization || appointment.appointment_type || 'Consulta',
+    status,
+    estado: getStatusLabel(status),
+    motivo: appointment.chief_complaint || appointment.appointment_type || 'No especificado',
+  };
+};
 
 export function MisCitasScreen() {
   const navigate = useNavigate();
@@ -116,7 +144,8 @@ export function MisCitasScreen() {
     loadAppointments();
   }, []);
 
-  const citasFiltradas = filtroEstado === 'all' ? citas : citas.filter(c => c.estado === filtroEstado);
+  const citasFiltradas =
+    filtroEstado === 'all' ? citas : citas.filter((c) => c.status === filtroEstado);
 
   // Open reschedule dialog
   const openReschedule = (cita: Cita) => {
@@ -139,7 +168,7 @@ export function MisCitasScreen() {
       });
       setCitas(prev => prev.map(c =>
         c.id === selectedCita.id
-          ? { ...c, fecha: newFecha, hora: newHora, estado: 'Pendiente' }
+          ? { ...c, fecha: newFecha, hora: newHora, status: 'pending', estado: 'Pendiente' }
           : c
       ));
       setRescheduleSuccess(true);
@@ -171,7 +200,7 @@ export function MisCitasScreen() {
       await appointmentsApi.cancel(cancelCita.id, cancelMotivo);
       setCitas(prev => prev.map(c =>
         c.id === cancelCita.id
-          ? { ...c, estado: 'Cancelada' }
+          ? { ...c, status: 'cancelled', estado: 'Cancelada' }
           : c
       ));
       setCancelSuccess(true);
@@ -206,11 +235,11 @@ export function MisCitasScreen() {
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Todas</SelectItem>
-            <SelectItem value="Confirmada">Confirmadas</SelectItem>
-            <SelectItem value="Pendiente">Pendientes</SelectItem>
-            <SelectItem value="Completada">Completadas</SelectItem>
-            <SelectItem value="Cancelada">Canceladas</SelectItem>
+            {filterOptions.map((opt) => (
+              <SelectItem key={opt.value} value={opt.value}>
+                {opt.label}
+              </SelectItem>
+            ))}
           </SelectContent>
         </Select>
       </div>
@@ -245,7 +274,7 @@ export function MisCitasScreen() {
                     <Badge className={estadoColors[cita.estado] || 'bg-gray-100 text-gray-600'}>{cita.estado}</Badge>
                   </td>
                   <td className="p-3">
-                    {(cita.estado === 'Confirmada' || cita.estado === 'Pendiente') && (
+                    {canModifyAppointment(cita.status) && (
                       <div className="flex gap-2">
                         <Button
                           variant="outline"
@@ -296,7 +325,7 @@ export function MisCitasScreen() {
                 <span className="flex items-center gap-1"><Clock className="h-3 w-3" /> {cita.hora}</span>
               </div>
               <p className="text-xs text-[#9E9E9E] mb-3">Motivo: {cita.motivo}</p>
-              {(cita.estado === 'Confirmada' || cita.estado === 'Pendiente') && (
+              {canModifyAppointment(cita.status) && (
                 <div className="flex gap-2">
                   <Button
                     variant="outline"
