@@ -35,8 +35,8 @@ export function HistorialClinicoScreen() {
 
     async function loadHistory() {
       try {
-        const patient = await patientsApi.me();
-        const records = await medicalRecordsApi.byPatient(patient.id);
+        // Obtener los historiales accesibles para el usuario autenticado
+        const records = await medicalRecordsApi.list();
         if (!ignore) setHistorial(records.map(mapMedicalRecord));
       } catch (err) {
         if (!ignore) setError(getApiErrorMessage(err));

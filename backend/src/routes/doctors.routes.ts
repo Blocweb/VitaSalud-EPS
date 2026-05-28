@@ -4,6 +4,7 @@ import {
   getDoctors,
   getDoctorById,
   getDoctorsBySpecialization,
+  createDoctor,
   updateDoctor
 } from '../controllers/doctors.controller';
 
@@ -19,7 +20,8 @@ router.get(
   authenticate,
   authorize(
     'doctor',
-    'patient'
+    'patient',
+    'admin'
   ),
   getDoctors
 );
@@ -29,7 +31,8 @@ router.get(
   authenticate,
   authorize(
     'doctor',
-    'patient'
+    'patient',
+    'admin'
   ),
   getDoctorsBySpecialization
 );
@@ -39,9 +42,17 @@ router.get(
   authenticate,
   authorize(
     'doctor',
-    'patient'
+    'patient',
+    'admin'
   ),
   getDoctorById
+);
+
+router.post(
+  '/',
+  authenticate,
+  authorize('admin'),
+  createDoctor
 );
 
 router.put(

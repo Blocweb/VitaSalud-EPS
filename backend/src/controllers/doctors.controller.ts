@@ -1,6 +1,9 @@
 import { Request, Response } from 'express';
+import { PoolClient } from 'pg';
 import { query } from '../config/database';
 import { AppError, handleError } from '../utils/errors';
+import { getClient } from '../config/database';
+import { hashPassword } from '../utils/password';
 
 export const getDoctors = async (req: Request, res: Response) => {
   try {
@@ -123,9 +126,114 @@ export const updateDoctor = async (req: Request, res: Response) => {
   }
 };
 
+export const createDoctor = async (req: Request, res: Response) => {
+  let client: PoolClient | undefined;
+
+  try {
+    const {
+      email,
+      password,
+      first_name,
+      last_name,
+      phone,
+      department_id,
+      license_number,
+      specialization,
+      qualification,
+      experience_years,
+      consultation_fee,
+      available_for_emergency,
+      biography,
+      languages_spoken,
+    } = req.body;
+
+    if (!email || !password || !first_name || !last_name || !license_number || !specialization) {
+      throw new AppError(400, 'Missing required fields');
+    }
+
+    client = await getClient();
+    await client.query('BEGIN');
+
+    const existingUser = await client.query(`SELECT id FROM users WHERE email = $1 AND deleted_at IS NULL`, [email]);
+    if (existingUser.rows.length > 0) {
+      throw new AppError(409, 'Email already registered');
+    }
+
+    const existingLicense = await client.query(
+      `SELECT id FROM doctors WHERE license_number = $1 AND deleted_at IS NULL`,
+      [license_number]
+    );
+    if (existingLicense.rows.length > 0) {
+      throw new AppError(409, 'License number already registered');
+    }
+
+    const roleResult = await client.query(`SELECT id FROM roles WHERE name = 'doctor' LIMIT 1`);
+    const roleId = roleResult.rows[0]?.id;
+    if (!roleId) {
+      throw new AppError(500, 'Doctor role is not configured');
+    }
+
+    const passwordHash = await hashPassword(password);
+
+    const usernameBase = String(email).split('@')[0];
+    const userResult = await client.query(
+      `INSERT INTO users (username, email, password_hash, role_id, status, first_name, last_name, phone, email_verified)
+       VALUES ($1, $2, $3, $4, 'active', $5, $6, $7, TRUE)
+       RETURNING id, email, first_name, last_name`,
+      [usernameBase, email, passwordHash, roleId, first_name, last_name, phone || null]
+    );
+    const newUser = userResult.rows[0];
+
+    const doctorResult = await client.query(
+      `INSERT INTO doctors (
+         user_id, department_id, license_number, specialization, qualification,
+         experience_years, consultation_fee, available_for_emergency, biography, languages_spoken
+       ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
+       RETURNING *`,
+      [
+        newUser.id,
+        department_id ?? null,
+        license_number,
+        specialization,
+        qualification ?? null,
+        experience_years ?? 0,
+        consultation_fee ?? 0,
+        available_for_emergency ?? true,
+        biography ?? null,
+        languages_spoken ?? null,
+      ]
+    );
+
+    await client.query('COMMIT');
+
+    res.status(201).json({
+      success: true,
+      message: 'Doctor created successfully',
+      data: {
+        ...doctorResult.rows[0],
+        first_name: newUser.first_name,
+        last_name: newUser.last_name,
+        email: newUser.email,
+      },
+    });
+  } catch (error) {
+    if (client) {
+      await client.query('ROLLBACK').catch(() => undefined);
+    }
+    const appError = handleError(error);
+    res.status(appError.statusCode).json({
+      success: false,
+      message: appError.message,
+    });
+  } finally {
+    client?.release();
+  }
+};
+
 export default {
   getDoctors,
   getDoctorById,
   getDoctorsBySpecialization,
+  createDoctor,
   updateDoctor,
 };

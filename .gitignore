@@ -1,0 +1,6 @@
+**/node_modules/
+backend/dist/
+Hospital Data Management Dashboard/build/
+.vscode/
+**/*.log
+.env

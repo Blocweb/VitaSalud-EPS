@@ -9,73 +9,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Building2, MapPin, Phone, Mail, Users, Edit, Eye, UserX, Plus } from 'lucide-react';
 
-const branchesData = [
-  {
-    id: 1,
-    name: 'Downtown Medical Center',
-    location: 'Lahore, Punjab',
-    phone: '+92-42-111-2233',
-    email: 'downtown@hospital.com',
-    activeTrainees: 45,
-    coursesOffered: 8,
-    trainersAssigned: 12,
-    adminAssigned: 'Dr. Ahmed Khan',
-    capacity: 50,
-    status: 'Active'
-  },
-  {
-    id: 2,
-    name: 'City General Hospital',
-    location: 'Karachi, Sindh',
-    phone: '+92-21-111-4455',
-    email: 'citygeneral@hospital.com',
-    activeTrainees: 38,
-    coursesOffered: 6,
-    trainersAssigned: 9,
-    adminAssigned: 'Dr. Fatima Ali',
-    capacity: 40,
-    status: 'Active'
-  },
-  {
-    id: 3,
-    name: 'Capital Health Center',
-    location: 'Islamabad, ICT',
-    phone: '+92-51-111-6677',
-    email: 'capital@hospital.com',
-    activeTrainees: 32,
-    coursesOffered: 7,
-    trainersAssigned: 8,
-    adminAssigned: 'Dr. Hassan Raza',
-    capacity: 35,
-    status: 'Active'
-  },
-  {
-    id: 4,
-    name: 'Regional Medical Complex',
-    location: 'Faisalabad, Punjab',
-    phone: '+92-41-111-8899',
-    email: 'regional@hospital.com',
-    activeTrainees: 28,
-    coursesOffered: 5,
-    trainersAssigned: 7,
-    adminAssigned: 'Dr. Ayesha Malik',
-    capacity: 30,
-    status: 'Pending Setup'
-  }
-];
-
-const servicesOptions = [
-  'Emergency Medicine',
-  'Cardiology',
-  'Pediatrics',
-  'Surgery',
-  'Radiology',
-  'Laboratory',
-  'ICU',
-  'Neurology',
-  'Orthopedics',
-  'Psychiatry'
-];
+// Demo branch data removed. Use real API when available.
+const branchesData: any[] = [];
+const servicesOptions: string[] = [];
 
 export function HospitalBranchesModule() {
   const [isAddBranchOpen, setIsAddBranchOpen] = useState(false);

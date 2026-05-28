@@ -10,90 +10,10 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Progress } from '../ui/progress';
 import { GraduationCap, User, MapPin, BookOpen, Award, Plus, Edit, Eye, UserCheck, Download, ArrowUpDown } from 'lucide-react';
 
-const traineesData = [
-  {
-    id: 1,
-    name: 'Dr. Aisha Khan',
-    cnic: '12345-6789012-3',
-    phone: '+92-300-1234567',
-    email: 'aisha.khan@email.com',
-    hospitalBranch: 'Downtown Medical Center',
-    courseEnrolled: 'Advanced Cardiology',
-    trainer: 'Dr. Ahmed Hassan',
-    enrollmentDate: '2024-01-15',
-    status: 'Active',
-    progress: 75,
-    completedModules: 6,
-    totalModules: 8,
-    certificatesEarned: 2
-  },
-  {
-    id: 2,
-    name: 'Dr. Muhammad Ali',
-    cnic: '12345-6789012-4',
-    phone: '+92-301-2345678',
-    email: 'muhammad.ali@email.com',
-    hospitalBranch: 'City General Hospital',
-    courseEnrolled: 'Emergency Medicine',
-    trainer: 'Dr. Fatima Sheikh',
-    enrollmentDate: '2024-02-01',
-    status: 'Active',
-    progress: 60,
-    completedModules: 4,
-    totalModules: 8,
-    certificatesEarned: 1
-  },
-  {
-    id: 3,
-    name: 'Dr. Fatima Malik',
-    cnic: '12345-6789012-5',
-    phone: '+92-302-3456789',
-    email: 'fatima.malik@email.com',
-    hospitalBranch: 'Capital Health Center',
-    courseEnrolled: 'Pediatric Care',
-    trainer: 'Dr. Hassan Raza',
-    enrollmentDate: '2023-11-20',
-    status: 'Completed',
-    progress: 100,
-    completedModules: 10,
-    totalModules: 10,
-    certificatesEarned: 3
-  },
-  {
-    id: 4,
-    name: 'Dr. Omar Sheikh',
-    cnic: '12345-6789012-6',
-    phone: '+92-303-4567890',
-    email: 'omar.sheikh@email.com',
-    hospitalBranch: 'Regional Medical Complex',
-    courseEnrolled: 'Basic Surgery',
-    trainer: 'Dr. Ayesha Malik',
-    enrollmentDate: '2024-03-10',
-    status: 'Dropped',
-    progress: 25,
-    completedModules: 2,
-    totalModules: 8,
-    certificatesEarned: 0
-  }
-];
-
-const courses = [
-  'Advanced Cardiology',
-  'Emergency Medicine',
-  'Pediatric Care',
-  'Basic Surgery',
-  'Diagnostic Imaging',
-  'Internal Medicine',
-  'Neurology Basics',
-  'Orthopedic Care'
-];
-
-const branches = [
-  'Downtown Medical Center',
-  'City General Hospital',
-  'Capital Health Center',
-  'Regional Medical Complex'
-];
+// Demo trainee data removed. Use backend endpoints for trainees, courses and branches.
+const traineesData: any[] = [];
+const courses: string[] = [];
+const branches: string[] = [];
 
 export function TraineesModule() {
   const [selectedTrainee, setSelectedTrainee] = useState<any>(null);

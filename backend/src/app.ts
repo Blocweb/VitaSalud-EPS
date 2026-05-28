@@ -16,6 +16,7 @@ import prescriptionsRoutes from './routes/prescriptions.routes';
 import inventoryRoutes from './routes/inventory.routes';
 import billingRoutes from './routes/billing.routes';
 import labTestsRoutes from './routes/lab-tests.routes';
+import settingsRoutes from './routes/settings.routes';
 
 const app = express();
 
@@ -53,6 +54,7 @@ app.use(`${apiPrefix}/prescriptions`, prescriptionsRoutes);
 app.use(`${apiPrefix}/inventory`, inventoryRoutes);
 app.use(`${apiPrefix}/billing`, billingRoutes);
 app.use(`${apiPrefix}/lab-tests`, labTestsRoutes);
+app.use(`${apiPrefix}/settings`, settingsRoutes);
 
 // 404 handler
 app.use((req, res) => {

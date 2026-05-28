@@ -3,27 +3,10 @@ import { Button } from '../ui/button';
 import { Badge } from '../ui/badge';
 import { Bell, Building2, BookOpen, GraduationCap, Users, Calendar, Plus, TrendingUp, AlertCircle } from 'lucide-react';
 
-const keyStats = [
-  { title: 'Total Hospital Branches', value: '15', icon: Building2, color: 'text-blue-600', bgColor: 'bg-blue-100' },
-  { title: 'Active Courses', value: '28', icon: BookOpen, color: 'text-green-600', bgColor: 'bg-green-100' },
-  { title: 'Enrolled Trainees', value: '247', icon: GraduationCap, color: 'text-purple-600', bgColor: 'bg-purple-100' },
-  { title: 'Active Trainers', value: '42', icon: Users, color: 'text-teal-600', bgColor: 'bg-teal-100' },
-  { title: 'Upcoming Sessions', value: '18', icon: Calendar, color: 'text-orange-600', bgColor: 'bg-orange-100' },
-];
-
-const notifications = [
-  { message: "Course 'Advanced Cardiology' starts in 2 days", type: 'upcoming', time: '2 hours ago' },
-  { message: "New trainee added to 'Lahore Branch'", type: 'new', time: '4 hours ago' },
-  { message: "Training session 'Emergency Medicine' completed", type: 'completed', time: '6 hours ago' },
-  { message: "Trainer Dr. Ahmed assigned to 'Pediatric Care'", type: 'assignment', time: '1 day ago' },
-  { message: "Branch 'Karachi Medical Center' updated capacity", type: 'update', time: '2 days ago' },
-];
-
-const quickActions = [
-  { title: 'Add New Branch', description: 'Register a new hospital branch', icon: Building2, action: 'add-branch' },
-  { title: 'Add New Course', description: 'Create a training program', icon: BookOpen, action: 'add-course' },
-  { title: 'Schedule Training Session', description: 'Set up a new training session', icon: Calendar, action: 'schedule-session' },
-];
+// Demo data removed: these should be populated by API calls where available.
+const keyStats: any[] = [];
+const notifications: any[] = [];
+const quickActions: any[] = [];
 
 export function DashboardModule() {
   const userName = "Dr. Sarah Johnson";

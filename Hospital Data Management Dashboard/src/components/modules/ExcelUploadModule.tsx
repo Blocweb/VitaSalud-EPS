@@ -7,20 +7,9 @@ import { Progress } from '../ui/progress';
 import { Alert, AlertDescription } from '../ui/alert';
 import { Upload, FileSpreadsheet, CheckCircle, AlertCircle, X, Download } from 'lucide-react';
 
-const recentUploads = [
-  { id: 1, filename: 'patient_data_2024.xlsx', uploadTime: '2 hours ago', status: 'Success', records: 1247 },
-  { id: 2, filename: 'staff_schedule.xlsx', uploadTime: '1 day ago', status: 'Success', records: 89 },
-  { id: 3, filename: 'inventory_report.xlsx', uploadTime: '2 days ago', status: 'Error', records: 0 },
-  { id: 4, filename: 'appointment_data.xlsx', uploadTime: '3 days ago', status: 'Success', records: 456 },
-];
-
-const columnMappings = [
-  { excelColumn: 'Patient Name', databaseField: 'patient_name', status: 'mapped' },
-  { excelColumn: 'Date of Birth', databaseField: 'date_of_birth', status: 'mapped' },
-  { excelColumn: 'Phone Number', databaseField: 'phone', status: 'mapped' },
-  { excelColumn: 'Insurance ID', databaseField: 'insurance_id', status: 'mapped' },
-  { excelColumn: 'Emergency Contact', databaseField: '', status: 'unmapped' },
-];
+// Demo upload data removed. Use real upload history and mappings from server.
+const recentUploads: any[] = [];
+const columnMappings: any[] = [];
 
 export function ExcelUploadModule() {
   const [dragActive, setDragActive] = useState(false);

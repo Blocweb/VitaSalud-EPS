@@ -1,9 +1,49 @@
 import { Request, Response } from 'express';
 import { PoolClient } from 'pg';
+import crypto from 'crypto';
 import { query, getClient } from '../config/database';
 import { generateToken } from '../utils/jwt';
 import { hashPassword, comparePassword } from '../utils/password';
 import { AppError, handleError } from '../utils/errors';
+import { sendEmail } from '../utils/mailer';
+
+function generate6DigitCode(): string {
+  return String(Math.floor(100000 + Math.random() * 900000));
+}
+
+function sha256(input: string): string {
+  return crypto.createHash('sha256').update(input).digest('hex');
+}
+
+function passwordResetHtml(code: string, minutesValid: number) {
+  return `
+  <div style="background:#f5f7fa;padding:24px;font-family:Arial,Helvetica,sans-serif;">
+    <div style="max-width:520px;margin:0 auto;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e5e7eb;">
+      <div style="background:linear-gradient(90deg,#0D47A1,#1E88E5);padding:18px 22px;color:#ffffff;">
+        <div style="font-size:18px;font-weight:700;letter-spacing:0.2px;">VitaSalud</div>
+        <div style="font-size:13px;opacity:0.9;margin-top:4px;">Recuperación de contraseña</div>
+      </div>
+      <div style="padding:22px;color:#111827;">
+        <p style="margin:0 0 12px;font-size:14px;line-height:1.5;color:#374151;">
+          Usa el siguiente código para continuar con la recuperación de tu contraseña:
+        </p>
+        <div style="text-align:center;margin:18px 0;">
+          <div style="display:inline-block;background:#EFF6FF;border:1px solid #BFDBFE;color:#1D4ED8;
+                      font-size:28px;font-weight:800;letter-spacing:6px;padding:14px 18px;border-radius:12px;">
+            ${code}
+          </div>
+        </div>
+        <p style="margin:0 0 12px;font-size:13px;line-height:1.5;color:#6B7280;">
+          Este código es válido por <b>${minutesValid} minutos</b>. Si no solicitaste este cambio, ignora este correo.
+        </p>
+        <div style="margin-top:18px;padding-top:14px;border-top:1px solid #E5E7EB;color:#9CA3AF;font-size:12px;">
+          © ${new Date().getFullYear()} VitaSalud
+        </div>
+      </div>
+    </div>
+  </div>
+  `;
+}
 
 export const login = async (req: Request, res: Response) => {
   try {
@@ -218,8 +258,107 @@ export const verifyToken = async (req: Request, res: Response) => {
   }
 };
 
+export const forgotPassword = async (req: Request, res: Response) => {
+  try {
+    const { email } = req.body || {};
+    if (!email) {
+      throw new AppError(400, 'Email is required');
+    }
+
+    const result = await query(
+      `SELECT id, email, first_name FROM users WHERE email = $1 AND deleted_at IS NULL`,
+      [email]
+    );
+
+    // Respuesta neutra para no filtrar si existe
+    if (result.rows.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: 'If the email exists, a verification code was sent',
+      });
+    }
+
+    const user = result.rows[0];
+    const code = generate6DigitCode();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+
+    await query(
+      `UPDATE users
+       SET reset_password_token = $1,
+           reset_password_expires = $2
+       WHERE id = $3`,
+      [sha256(code), expiresAt.toISOString(), user.id]
+    );
+
+    await sendEmail({
+      to: user.email,
+      subject: 'VitaSalud - Código de verificación',
+      text: `Tu código de verificación es: ${code}. Válido por 10 minutos.`,
+      html: passwordResetHtml(code, 10),
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'If the email exists, a verification code was sent',
+    });
+  } catch (error) {
+    const appError = handleError(error);
+    return res.status(appError.statusCode).json({ success: false, message: appError.message });
+  }
+};
+
+export const resetPassword = async (req: Request, res: Response) => {
+  try {
+    const { email, code, new_password } = req.body || {};
+    if (!email || !code || !new_password) {
+      throw new AppError(400, 'Missing required fields');
+    }
+    if (String(new_password).length < 8) {
+      throw new AppError(400, 'Password must be at least 8 characters');
+    }
+
+    const result = await query(
+      `SELECT id, reset_password_token, reset_password_expires
+       FROM users
+       WHERE email = $1 AND deleted_at IS NULL`,
+      [email]
+    );
+    if (result.rows.length === 0) {
+      throw new AppError(400, 'Invalid code');
+    }
+
+    const user = result.rows[0];
+    if (!user.reset_password_token || !user.reset_password_expires) {
+      throw new AppError(400, 'Invalid code');
+    }
+    if (new Date(user.reset_password_expires) < new Date()) {
+      throw new AppError(400, 'Code expired');
+    }
+    if (user.reset_password_token !== sha256(String(code))) {
+      throw new AppError(400, 'Invalid code');
+    }
+
+    const passwordHash = await hashPassword(String(new_password));
+    await query(
+      `UPDATE users
+       SET password_hash = $1,
+           reset_password_token = NULL,
+           reset_password_expires = NULL
+       WHERE id = $2`,
+      [passwordHash, user.id]
+    );
+
+    return res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    const appError = handleError(error);
+    return res.status(appError.statusCode).json({ success: false, message: appError.message });
+  }
+};
+
 export default {
   login,
   register,
   verifyToken,
+  forgotPassword,
+  resetPassword,
 };

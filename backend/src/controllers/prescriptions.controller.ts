@@ -134,6 +134,57 @@ export const getPrescriptionsByPatient = async (req: Request, res: Response) => 
   }
 };
 
+export const getPrescriptionsByDoctor = async (req: Request, res: Response) => {
+  try {
+    if (!req.user) {
+      throw new AppError(401, 'No user found');
+    }
+
+    const { doctorId } = req.params;
+
+    // Verificar que el doctor existe
+    const doctorCheck = await query(
+      `SELECT id, user_id FROM doctors WHERE id = $1 AND deleted_at IS NULL`,
+      [doctorId]
+    );
+
+    if (doctorCheck.rows.length === 0) {
+      throw new AppError(404, 'Doctor not found');
+    }
+
+    // Validar permisos: un doctor solo puede ver sus propias recetas
+    if (req.user.role === 'doctor' && doctorCheck.rows[0].user_id !== req.user.id) {
+      throw new AppError(403, 'Insufficient permissions');
+    }
+
+    const result = await query(
+      `SELECT p.id, p.prescription_number, p.prescription_date, p.diagnosis, p.is_active, p.dispensed,
+              pt.first_name || ' ' || pt.last_name as patient_name,
+              u.first_name || ' ' || u.last_name as doctor_name,
+              p.created_at
+       FROM prescriptions p
+       JOIN patients pt ON p.patient_id = pt.id
+       JOIN doctors d ON p.doctor_id = d.id
+       JOIN users u ON d.user_id = u.id
+       WHERE p.doctor_id = $1 AND p.deleted_at IS NULL
+       ORDER BY p.prescription_date DESC`,
+      [doctorId]
+    );
+
+    res.status(200).json({
+      success: true,
+      data: result.rows,
+      total: result.rows.length,
+    });
+  } catch (error) {
+    const appError = handleError(error);
+    res.status(appError.statusCode).json({
+      success: false,
+      message: appError.message,
+    });
+  }
+};
+
 export const createPrescription = async (req: Request, res: Response) => {
   try {
     const { patient_id, doctor_id, medical_record_id, appointment_id, diagnosis, notes, items } = req.body;
@@ -232,6 +283,7 @@ export default {
   getPrescriptions,
   getPrescriptionById,
   getPrescriptionsByPatient,
+  getPrescriptionsByDoctor,
   createPrescription,
   dispensePrescription,
   deletePrescription,

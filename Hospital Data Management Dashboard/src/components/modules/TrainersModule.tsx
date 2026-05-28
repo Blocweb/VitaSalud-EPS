@@ -10,103 +10,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { Users, Star, BookOpen, MapPin, Phone, Mail, Plus, Edit, Eye, Calendar, Award, FileText } from 'lucide-react';
 
-const trainersData = [
-  {
-    id: 1,
-    name: 'Dr. Ahmed Hassan',
-    specialty: 'Cardiology',
-    coursesHandled: ['Advanced Cardiology', 'Basic ECG Reading'],
-    branchAssigned: 'Downtown Medical Center',
-    rating: 4.8,
-    phone: '+92-300-1111111',
-    email: 'ahmed.hassan@hospital.com',
-    qualifications: 'MBBS, MD Cardiology, FCPS',
-    experience: '12 years',
-    status: 'Active',
-    totalTrainees: 45,
-    completedCourses: 8,
-    availability: 'Full-time'
-  },
-  {
-    id: 2,
-    name: 'Dr. Fatima Sheikh',
-    specialty: 'Emergency Medicine',
-    coursesHandled: ['Emergency Medicine', 'Trauma Care'],
-    branchAssigned: 'City General Hospital',
-    rating: 4.6,
-    phone: '+92-301-2222222',
-    email: 'fatima.sheikh@hospital.com',
-    qualifications: 'MBBS, FCPS Emergency Medicine',
-    experience: '8 years',
-    status: 'Active',
-    totalTrainees: 32,
-    completedCourses: 6,
-    availability: 'Part-time'
-  },
-  {
-    id: 3,
-    name: 'Dr. Hassan Raza',
-    specialty: 'Pediatrics',
-    coursesHandled: ['Pediatric Care', 'Child Development'],
-    branchAssigned: 'Capital Health Center',
-    rating: 4.9,
-    phone: '+92-302-3333333',
-    email: 'hassan.raza@hospital.com',
-    qualifications: 'MBBS, FCPS Pediatrics, Diploma Child Health',
-    experience: '15 years',
-    status: 'Active',
-    totalTrainees: 38,
-    completedCourses: 12,
-    availability: 'Full-time'
-  },
-  {
-    id: 4,
-    name: 'Dr. Ayesha Malik',
-    specialty: 'Surgery',
-    coursesHandled: ['Basic Surgery', 'Surgical Techniques'],
-    branchAssigned: 'Regional Medical Complex',
-    rating: 4.4,
-    phone: '+92-303-4444444',
-    email: 'ayesha.malik@hospital.com',
-    qualifications: 'MBBS, MS Surgery, FCPS',
-    experience: '10 years',
-    status: 'On Leave',
-    totalTrainees: 28,
-    completedCourses: 5,
-    availability: 'Unavailable'
-  }
-];
-
-const specialties = [
-  'Cardiology',
-  'Emergency Medicine',
-  'Pediatrics',
-  'Surgery',
-  'Internal Medicine',
-  'Neurology',
-  'Orthopedics',
-  'Radiology',
-  'Psychiatry',
-  'Dermatology'
-];
-
-const branches = [
-  'Downtown Medical Center',
-  'City General Hospital',
-  'Capital Health Center',
-  'Regional Medical Complex'
-];
-
-const courses = [
-  'Advanced Cardiology',
-  'Emergency Medicine',
-  'Pediatric Care',
-  'Basic Surgery',
-  'Internal Medicine',
-  'Diagnostic Imaging',
-  'Neurology Basics',
-  'Orthopedic Care'
-];
+// Demo trainer data removed. Populate via trainers API.
+const trainersData: any[] = [];
+const specialties: string[] = [];
+const branches: string[] = [];
+const courses: string[] = [];
 
 export function TrainersModule() {
   const [selectedTrainer, setSelectedTrainer] = useState<any>(null);

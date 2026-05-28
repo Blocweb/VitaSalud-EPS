@@ -10,13 +10,8 @@ import { Label } from '../ui/label';
 import { Switch } from '../ui/switch';
 import { Users, UserPlus, Edit, Trash2, Shield, Settings } from 'lucide-react';
 
-const userData = [
-  { id: 1, name: 'Dr. Sarah Johnson', email: 'sarah.johnson@hospital.com', role: 'Administrator', status: 'Active', lastLogin: '2 hours ago' },
-  { id: 2, name: 'Dr. Michael Chen', email: 'michael.chen@hospital.com', role: 'Editor', status: 'Active', lastLogin: '1 day ago' },
-  { id: 3, name: 'Nurse Lisa Williams', email: 'lisa.williams@hospital.com', role: 'Viewer', status: 'Active', lastLogin: '3 hours ago' },
-  { id: 4, name: 'Dr. Robert Davis', email: 'robert.davis@hospital.com', role: 'Editor', status: 'Inactive', lastLogin: '1 week ago' },
-  { id: 5, name: 'Admin John Smith', email: 'john.smith@hospital.com', role: 'Administrator', status: 'Active', lastLogin: '5 minutes ago' },
-];
+// Demo users removed. Use backend users endpoint.
+const userData: any[] = [];
 
 const rolePermissions = {
   Administrator: {

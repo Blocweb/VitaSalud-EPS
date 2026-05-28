@@ -3,38 +3,11 @@ import { Badge } from '../ui/badge';
 import { Users, Activity, Award, BookOpen } from 'lucide-react';
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area } from 'recharts';
 
-const trainerAgeDistributionData = [
-  { ageGroup: '25-30', count: 15, percentage: 18.8 },
-  { ageGroup: '31-35', count: 22, percentage: 27.5 },
-  { ageGroup: '36-40', count: 19, percentage: 23.8 },
-  { ageGroup: '41-45', count: 14, percentage: 17.5 },
-  { ageGroup: '46-50', count: 8, percentage: 10.0 },
-  { ageGroup: '51+', count: 2, percentage: 2.4 },
-];
-
-const treatmentStatusData = [
-  { status: 'Active Training', value: 45, color: '#008080' },
-  { status: 'Completed', value: 28, color: '#90EE90' },
-  { status: 'On Hold', value: 12, color: '#FFB74D' },
-  { status: 'Dropped Out', value: 8, color: '#FF6B6B' },
-];
-
-const monthlyProgressData = [
-  { month: 'Jan', newTrainers: 8, completions: 5, dropouts: 2 },
-  { month: 'Feb', newTrainers: 12, completions: 7, dropouts: 1 },
-  { month: 'Mar', newTrainers: 15, completions: 9, dropouts: 3 },
-  { month: 'Apr', newTrainers: 10, completions: 11, dropouts: 2 },
-  { month: 'May', newTrainers: 14, completions: 8, dropouts: 1 },
-  { month: 'Jun', newTrainers: 18, completions: 13, dropouts: 2 },
-];
-
-const trainerPerformanceData = [
-  { name: 'Dr. Emily Chen', completionRate: 95, studentsCount: 24, avgRating: 4.8, specialty: 'Cardiology' },
-  { name: 'Dr. Michael Rodriguez', completionRate: 88, studentsCount: 19, avgRating: 4.6, specialty: 'Emergency Medicine' },
-  { name: 'Dr. Sarah Johnson', completionRate: 92, studentsCount: 31, avgRating: 4.9, specialty: 'Pediatrics' },
-  { name: 'Dr. David Kim', completionRate: 85, studentsCount: 16, avgRating: 4.5, specialty: 'Surgery' },
-  { name: 'Dr. Lisa Thompson', completionRate: 90, studentsCount: 22, avgRating: 4.7, specialty: 'Internal Medicine' },
-];
+// Demo data removed. Populate via APIs where appropriate.
+const trainerAgeDistributionData: any[] = [];
+const treatmentStatusData: any[] = [];
+const monthlyProgressData: any[] = [];
+const trainerPerformanceData: any[] = [];
 
 export function TrainerDataModule() {
   return (

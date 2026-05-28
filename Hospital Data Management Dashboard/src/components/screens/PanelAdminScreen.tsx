@@ -1,197 +1,309 @@
+import { useEffect, useMemo, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { Badge } from '../ui/badge';
-import { CalendarDays, Users, Stethoscope, Activity, TrendingUp, Building2 } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
-
-const metricas = [
-  { label: 'Citas del Dia', value: '48', cambio: '+12%', icon: CalendarDays, color: '#1E88E5', bg: '#E3F2FD' },
-  { label: 'Pacientes Atendidos', value: '156', cambio: '+8%', icon: Users, color: '#43A047', bg: '#E8F5E9' },
-  { label: 'Medicos Activos', value: '24', cambio: '+2', icon: Stethoscope, color: '#7B1FA2', bg: '#F3E5F5' },
-  { label: 'Tasa Ocupacion', value: '87%', cambio: '+5%', icon: Activity, color: '#FF8F00', bg: '#FFF8E1' },
-];
-
-const citasPorMes = [
-  { mes: 'Oct', citas: 320 }, { mes: 'Nov', citas: 380 }, { mes: 'Dic', citas: 290 },
-  { mes: 'Ene', citas: 420 }, { mes: 'Feb', citas: 450 }, { mes: 'Mar', citas: 480 },
-];
-
-const pacientesPorDia = [
-  { dia: 'Lun', pacientes: 42 }, { dia: 'Mar', pacientes: 38 }, { dia: 'Mie', pacientes: 45 },
-  { dia: 'Jue', pacientes: 40 }, { dia: 'Vie', pacientes: 35 }, { dia: 'Sab', pacientes: 20 },
-];
-
-const especialidadData = [
-  { name: 'Cardiologia', value: 28, color: '#1E88E5' },
-  { name: 'General', value: 35, color: '#43A047' },
-  { name: 'Dermatologia', value: 15, color: '#64B5F6' },
-  { name: 'Pediatria', value: 22, color: '#FDD835' },
-];
-
-const medicosRecientes = [
-  { nombre: 'Dr. Juan Martinez', especialidad: 'Cardiologia', pacientesHoy: 8, estado: 'Activo' },
-  { nombre: 'Dra. Maria Rodriguez', especialidad: 'Dermatologia', pacientesHoy: 6, estado: 'Activo' },
-  { nombre: 'Dr. Carlos Lopez', especialidad: 'Medicina General', pacientesHoy: 10, estado: 'Activo' },
-  { nombre: 'Dra. Sofia Ramirez', especialidad: 'Pediatria', pacientesHoy: 7, estado: 'En descanso' },
-  { nombre: 'Dr. Alejandro Reyes', especialidad: 'Neurologia', pacientesHoy: 5, estado: 'Activo' },
-];
-
-const citasRecientes = [
-  { paciente: 'Carlos Mendoza', medico: 'Dr. Martinez', hora: '8:00 AM', estado: 'Completada' },
-  { paciente: 'Ana Garcia', medico: 'Dr. Martinez', hora: '8:30 AM', estado: 'En curso' },
-  { paciente: 'Luis Fernandez', medico: 'Dr. Lopez', hora: '9:00 AM', estado: 'Esperando' },
-  { paciente: 'Maria Torres', medico: 'Dra. Rodriguez', hora: '9:30 AM', estado: 'Esperando' },
-  { paciente: 'Pedro Ramirez', medico: 'Dr. Lopez', hora: '10:00 AM', estado: 'Programada' },
-];
-
-const estadoCitaColor: Record<string, string> = {
-  'Completada': 'bg-[#E8F5E9] text-[#43A047]',
-  'En curso': 'bg-[#E3F2FD] text-[#1E88E5]',
-  'Esperando': 'bg-[#FFF8E1] text-[#FF8F00]',
-  'Programada': 'bg-[#F5F7FA] text-[#616161]',
-};
+import { Button } from '../ui/button';
+import { Input } from '../ui/input';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../ui/select';
+import { departmentsApi, doctorsApi, settingsApi, type Department } from '../../lib/api';
+import { Stethoscope, Mail } from 'lucide-react';
 
 export function PanelAdminScreen() {
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [savingDoctor, setSavingDoctor] = useState(false);
+  const [doctorError, setDoctorError] = useState('');
+  const [doctorOk, setDoctorOk] = useState('');
+
+  const [doctorForm, setDoctorForm] = useState({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    password: '',
+    license_number: '',
+    specialization: '',
+    department_id: '' as string,
+  });
+
+  const [emailForm, setEmailForm] = useState({
+    host: '',
+    port: '587',
+    secure: false,
+    user: '',
+    pass: '',
+    from: '',
+    to: '',
+  });
+  const [emailStatus, setEmailStatus] = useState<{ ok?: string; error?: string }>({});
+  const [loadingEmail, setLoadingEmail] = useState(false);
+  const [savingEmail, setSavingEmail] = useState(false);
+
+  useEffect(() => {
+    let ignore = false;
+    departmentsApi
+      .list()
+      .then((data) => {
+        if (!ignore) setDepartments(data);
+      })
+      .catch(() => {
+        if (!ignore) setDepartments([]);
+      });
+
+    settingsApi
+      .getEmailConfig()
+      .then((r) => {
+        if (ignore) return;
+        setEmailForm((prev) => ({
+          ...prev,
+          host: r.data.host || prev.host,
+          port: String(r.data.port || prev.port),
+          user: r.data.user || prev.user,
+          from: r.data.from || prev.from,
+          secure: Boolean(r.data.secure),
+        }));
+      })
+      .catch(() => undefined);
+
+    return () => {
+      ignore = true;
+    };
+  }, []);
+
+  const departmentOptions = useMemo(
+    () => departments.filter((d) => d.is_active !== false),
+    [departments]
+  );
+
+  async function onCreateDoctor() {
+    setDoctorError('');
+    setDoctorOk('');
+    setSavingDoctor(true);
+    try {
+      const payload: any = {
+        first_name: doctorForm.first_name.trim(),
+        last_name: doctorForm.last_name.trim(),
+        email: doctorForm.email.trim(),
+        phone: doctorForm.phone.trim() || undefined,
+        password: doctorForm.password,
+        license_number: doctorForm.license_number.trim(),
+        specialization: doctorForm.specialization.trim(),
+        department_id: doctorForm.department_id ? Number(doctorForm.department_id) : null,
+      };
+
+      await doctorsApi.create(payload);
+      setDoctorOk('Médico creado correctamente.');
+      setDoctorForm({
+        first_name: '',
+        last_name: '',
+        email: '',
+        phone: '',
+        password: '',
+        license_number: '',
+        specialization: '',
+        department_id: '',
+      });
+    } catch (e: any) {
+      setDoctorError(e?.message || 'No se pudo crear el médico.');
+    } finally {
+      setSavingDoctor(false);
+    }
+  }
+
+  async function onTestEmail() {
+    setEmailStatus({});
+    setLoadingEmail(true);
+    try {
+      // Guardar antes de probar, para que quede persistente (y sirva para recuperación de contraseña)
+      await settingsApi.saveEmailConfig({
+        host: emailForm.host.trim(),
+        port: Number(emailForm.port),
+        user: emailForm.user.trim(),
+        pass: emailForm.pass,
+        from: emailForm.from.trim(),
+        secure: emailForm.secure,
+      });
+
+      await settingsApi.testEmail({
+        to: emailForm.to.trim(),
+        host: emailForm.host.trim(),
+        port: Number(emailForm.port),
+        user: emailForm.user.trim(),
+        pass: emailForm.pass,
+        from: emailForm.from.trim(),
+        secure: emailForm.secure,
+      });
+      setEmailStatus({ ok: 'Correo de prueba enviado correctamente.' });
+    } catch (e: any) {
+      setEmailStatus({ error: e?.message || 'No se pudo enviar el correo de prueba.' });
+    } finally {
+      setLoadingEmail(false);
+    }
+  }
+
+  async function onSaveEmail() {
+    setEmailStatus({});
+    setSavingEmail(true);
+    try {
+      await settingsApi.saveEmailConfig({
+        host: emailForm.host.trim(),
+        port: Number(emailForm.port),
+        user: emailForm.user.trim(),
+        pass: emailForm.pass,
+        from: emailForm.from.trim(),
+        secure: emailForm.secure,
+      });
+      setEmailStatus({ ok: 'Configuración guardada correctamente.' });
+    } catch (e: any) {
+      setEmailStatus({ error: e?.message || 'No se pudo guardar la configuración.' });
+    } finally {
+      setSavingEmail(false);
+    }
+  }
+
   return (
     <div className="space-y-6">
       <div>
         <h2 className="text-2xl text-[#212121]">Panel Administrativo</h2>
-        <p className="text-[#616161]">Metricas y gestion general de VitaSalud</p>
+        <p className="text-[#616161]">Gestión general de VitaSalud</p>
       </div>
 
-      {/* Metricas */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {metricas.map((m, i) => (
-          <Card key={i} className="border-0 shadow-sm">
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
+      <Tabs defaultValue="doctores" className="w-full">
+        <TabsList className="w-full">
+          <TabsTrigger value="doctores" className="flex-1">
+            <Stethoscope className="h-4 w-4" /> Médicos
+          </TabsTrigger>
+          <TabsTrigger value="correo" className="flex-1">
+            <Mail className="h-4 w-4" /> Correo
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="doctores">
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-[#212121]">Crear médico</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(doctorError || doctorOk) && (
+                <div className={`text-sm ${doctorError ? 'text-[#E53935]' : 'text-[#43A047]'}`}>
+                  {doctorError || doctorOk}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 <div>
-                  <p className="text-xs text-[#616161]">{m.label}</p>
-                  <p className="text-2xl text-[#212121] mt-1">{m.value}</p>
-                  <p className="text-xs text-[#43A047] flex items-center gap-1 mt-1">
-                    <TrendingUp className="h-3 w-3" /> {m.cambio}
-                  </p>
+                  <p className="text-xs text-[#616161] mb-1">Nombres</p>
+                  <Input value={doctorForm.first_name} onChange={(e) => setDoctorForm((p) => ({ ...p, first_name: e.target.value }))} />
                 </div>
-                <div className="w-12 h-12 rounded-xl flex items-center justify-center" style={{ backgroundColor: m.bg }}>
-                  <m.icon className="h-6 w-6" style={{ color: m.color }} />
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">Apellidos</p>
+                  <Input value={doctorForm.last_name} onChange={(e) => setDoctorForm((p) => ({ ...p, last_name: e.target.value }))} />
                 </div>
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">Email</p>
+                  <Input type="email" value={doctorForm.email} onChange={(e) => setDoctorForm((p) => ({ ...p, email: e.target.value }))} />
+                </div>
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">Teléfono</p>
+                  <Input value={doctorForm.phone} onChange={(e) => setDoctorForm((p) => ({ ...p, phone: e.target.value }))} />
+                </div>
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">Contraseña</p>
+                  <Input type="password" value={doctorForm.password} onChange={(e) => setDoctorForm((p) => ({ ...p, password: e.target.value }))} />
+                </div>
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">Licencia</p>
+                  <Input value={doctorForm.license_number} onChange={(e) => setDoctorForm((p) => ({ ...p, license_number: e.target.value }))} />
+                </div>
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">Especialidad</p>
+                  <Input value={doctorForm.specialization} onChange={(e) => setDoctorForm((p) => ({ ...p, specialization: e.target.value }))} />
+                </div>
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">Departamento</p>
+                  <Select
+                    value={doctorForm.department_id ? doctorForm.department_id : 'none'}
+                    onValueChange={(v) =>
+                      setDoctorForm((p) => ({ ...p, department_id: v === 'none' ? '' : v }))
+                    }
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Seleccionar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Sin departamento</SelectItem>
+                      {departmentOptions.map((d) => (
+                        <SelectItem key={d.id} value={String(d.id)}>{d.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <Button onClick={onCreateDoctor} disabled={savingDoctor} className="bg-[#1E88E5] hover:bg-[#1565C0] text-white">
+                  {savingDoctor ? 'Creando...' : 'Crear médico'}
+                </Button>
               </div>
             </CardContent>
           </Card>
-        ))}
-      </div>
+        </TabsContent>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-[#212121]">Citas por Mes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={citasPorMes}>
-                <XAxis dataKey="mes" tick={{ fill: '#616161', fontSize: 12 }} />
-                <YAxis tick={{ fill: '#616161', fontSize: 12 }} />
-                <Tooltip />
-                <Bar dataKey="citas" fill="#1E88E5" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+        <TabsContent value="correo">
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-[#212121]">Configuración de correo (SMTP)</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-[#616161]">
+                Esta configuración queda guardada de forma persistente en la base de datos y se usa para enviar códigos de recuperación de contraseña.
+              </p>
 
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-[#212121]">Pacientes por Dia (esta semana)</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <LineChart data={pacientesPorDia}>
-                <XAxis dataKey="dia" tick={{ fill: '#616161', fontSize: 12 }} />
-                <YAxis tick={{ fill: '#616161', fontSize: 12 }} />
-                <Tooltip />
-                <Line type="monotone" dataKey="pacientes" stroke="#1E88E5" strokeWidth={2} dot={{ fill: '#1E88E5' }} />
-              </LineChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
+              {emailStatus.error && <div className="text-sm text-[#E53935]">{emailStatus.error}</div>}
+              {emailStatus.ok && <div className="text-sm text-[#43A047]">{emailStatus.ok}</div>}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Citas por especialidad */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-[#212121]">Por Especialidad</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center">
-              <ResponsiveContainer width={180} height={180}>
-                <PieChart>
-                  <Pie data={especialidadData} cx="50%" cy="50%" outerRadius={80} dataKey="value">
-                    {especialidadData.map((entry, index) => (
-                      <Cell key={index} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-4">
-              {especialidadData.map((item, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
-                  <span className="text-xs text-[#616161]">{item.name} ({item.value})</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">SMTP Host</p>
+                  <Input value={emailForm.host} onChange={(e) => setEmailForm((p) => ({ ...p, host: e.target.value }))} />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Medicos */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-[#212121]">Medicos Activos</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {medicosRecientes.map((m, i) => (
-                <div key={i} className="flex items-center justify-between p-2 bg-[#F5F7FA] rounded-lg">
-                  <div className="flex items-center gap-2">
-                    <div className="w-8 h-8 bg-[#E3F2FD] rounded-full flex items-center justify-center">
-                      <Stethoscope className="h-4 w-4 text-[#1E88E5]" />
-                    </div>
-                    <div>
-                      <p className="text-xs text-[#212121]">{m.nombre}</p>
-                      <p className="text-xs text-[#9E9E9E]">{m.especialidad}</p>
-                    </div>
-                  </div>
-                  <Badge className={m.estado === 'Activo' ? 'bg-[#E8F5E9] text-[#43A047]' : 'bg-[#FFF8E1] text-[#FF8F00]'}>
-                    {m.pacientesHoy}p
-                  </Badge>
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">SMTP Port</p>
+                  <Input value={emailForm.port} onChange={(e) => setEmailForm((p) => ({ ...p, port: e.target.value }))} />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Citas recientes */}
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-[#212121]">Citas Recientes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {citasRecientes.map((c, i) => (
-                <div key={i} className="flex items-center justify-between p-2 bg-[#F5F7FA] rounded-lg">
-                  <div>
-                    <p className="text-xs text-[#212121]">{c.paciente}</p>
-                    <p className="text-xs text-[#9E9E9E]">{c.medico} - {c.hora}</p>
-                  </div>
-                  <Badge className={estadoCitaColor[c.estado]}>{c.estado}</Badge>
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">SMTP User</p>
+                  <Input value={emailForm.user} onChange={(e) => setEmailForm((p) => ({ ...p, user: e.target.value }))} />
                 </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">SMTP Pass</p>
+                  <Input type="password" value={emailForm.pass} onChange={(e) => setEmailForm((p) => ({ ...p, pass: e.target.value }))} />
+                </div>
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">From</p>
+                  <Input value={emailForm.from} onChange={(e) => setEmailForm((p) => ({ ...p, from: e.target.value }))} />
+                </div>
+                <div>
+                  <p className="text-xs text-[#616161] mb-1">Enviar prueba a</p>
+                  <Input type="email" value={emailForm.to} onChange={(e) => setEmailForm((p) => ({ ...p, to: e.target.value }))} />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  onClick={onSaveEmail}
+                  disabled={savingEmail}
+                  variant="outline"
+                  className="border-[#DADADA] hover:bg-[#F5F7FA]"
+                >
+                  {savingEmail ? 'Guardando...' : 'Guardar'}
+                </Button>
+                <Button onClick={onTestEmail} disabled={loadingEmail} className="bg-[#1E88E5] hover:bg-[#1565C0] text-white">
+                  {loadingEmail ? 'Enviando...' : 'Enviar correo de prueba'}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

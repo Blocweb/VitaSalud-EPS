@@ -7,7 +7,7 @@ import { Card, CardContent } from '../ui/card';
 import { InputOTP, InputOTPGroup, InputOTPSlot } from '../ui/input-otp';
 import { Mail, Lock, Eye, EyeOff, ArrowLeft, CheckCircle2, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { getApiErrorMessage } from '../../lib/api';
+import { authApi, getApiErrorMessage } from '../../lib/api';
 
 type RecoveryStep = 'login' | 'email' | 'code' | 'newPassword' | 'success';
 
@@ -55,15 +55,23 @@ export function LoginScreen() {
     setConfirmPassword('');
   };
 
-  const handleSendCode = (e: React.FormEvent) => {
+  const handleSendCode = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!recoveryEmail || !recoveryEmail.includes('@')) {
       setRecoveryError('Ingresa un correo electronico valido');
       return;
     }
     setRecoveryError('');
-    setRecoveryStep('code');
-    startResendTimer();
+    setIsSubmitting(true);
+    try {
+      await authApi.forgotPassword(recoveryEmail);
+      setRecoveryStep('code');
+      startResendTimer();
+    } catch (error) {
+      setRecoveryError(getApiErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const startResendTimer = () => {
@@ -89,7 +97,7 @@ export function LoginScreen() {
     setRecoveryStep('newPassword');
   };
 
-  const handleResetPassword = (e: React.FormEvent) => {
+  const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 8) {
       setRecoveryError('La contrasena debe tener al menos 8 caracteres');
@@ -100,7 +108,19 @@ export function LoginScreen() {
       return;
     }
     setRecoveryError('');
-    setRecoveryStep('success');
+    setIsSubmitting(true);
+    try {
+      await authApi.resetPassword({
+        email: recoveryEmail,
+        code: otpCode,
+        new_password: newPassword,
+      });
+      setRecoveryStep('success');
+    } catch (error) {
+      setRecoveryError(getApiErrorMessage(error));
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const backToLogin = () => {
@@ -135,8 +155,8 @@ export function LoginScreen() {
           </div>
         </div>
         {recoveryError && <p className="text-sm text-[#E53935]">{recoveryError}</p>}
-        <Button type="submit" className="w-full bg-[#1E88E5] hover:bg-[#1565C0] active:bg-[#0D47A1] text-white rounded-lg py-5">
-          Enviar Codigo
+        <Button type="submit" disabled={isSubmitting} className="w-full bg-[#1E88E5] hover:bg-[#1565C0] active:bg-[#0D47A1] text-white rounded-lg py-5">
+          {isSubmitting ? 'Enviando...' : 'Enviar Codigo'}
         </Button>
       </form>
     </>
@@ -178,7 +198,22 @@ export function LoginScreen() {
           {resendTimer > 0 ? (
             <p className="text-sm text-[#9E9E9E]">Reenviar codigo en <span className="text-[#1E88E5]">{resendTimer}s</span></p>
           ) : (
-            <button type="button" onClick={() => { startResendTimer(); }} className="text-sm text-[#1E88E5] hover:text-[#1565C0]">
+            <button
+              type="button"
+              onClick={async () => {
+                setRecoveryError('');
+                setIsSubmitting(true);
+                try {
+                  await authApi.forgotPassword(recoveryEmail);
+                  startResendTimer();
+                } catch (error) {
+                  setRecoveryError(getApiErrorMessage(error));
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}
+              className="text-sm text-[#1E88E5] hover:text-[#1565C0]"
+            >
               Reenviar codigo
             </button>
           )}
@@ -249,8 +284,8 @@ export function LoginScreen() {
             <span className={`text-xs ${/[0-9]/.test(newPassword) ? 'text-[#43A047]' : 'text-[#9E9E9E]'}`}>Un numero</span>
           </div>
         </div>
-        <Button type="submit" className="w-full bg-[#1E88E5] hover:bg-[#1565C0] active:bg-[#0D47A1] text-white rounded-lg py-5">
-          Restablecer Contrasena
+        <Button type="submit" disabled={isSubmitting} className="w-full bg-[#1E88E5] hover:bg-[#1565C0] active:bg-[#0D47A1] text-white rounded-lg py-5">
+          {isSubmitting ? 'Guardando...' : 'Restablecer Contrasena'}
         </Button>
       </form>
     </>

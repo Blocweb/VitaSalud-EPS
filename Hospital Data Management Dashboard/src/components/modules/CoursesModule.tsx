@@ -10,85 +10,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '../ui/dialog';
 import { BookOpen, Clock, Users, Star, Plus, Edit, Eye, Archive, Video, FileText, Calendar } from 'lucide-react';
 
-const coursesData = [
-  {
-    id: 1,
-    title: 'Advanced Cardiology',
-    duration: '8 weeks',
-    mode: 'Hybrid',
-    totalSessions: 16,
-    traineesEnrolled: 24,
-    assignedTrainers: ['Dr. Ahmed Hassan', 'Dr. Sarah Khan'],
-    objectives: 'Master advanced cardiac diagnosis and treatment procedures',
-    curriculum: ['ECG Interpretation', 'Cardiac Catheterization', 'Heart Surgery Basics', 'Emergency Cardiology'],
-    rating: 4.8,
-    status: 'Active',
-    startDate: '2024-02-01',
-    endDate: '2024-03-29',
-    materials: 12,
-    completionRate: 85
-  },
-  {
-    id: 2,
-    title: 'Emergency Medicine',
-    duration: '6 weeks',
-    mode: 'On-site',
-    totalSessions: 18,
-    traineesEnrolled: 18,
-    assignedTrainers: ['Dr. Fatima Sheikh', 'Dr. Omar Malik'],
-    objectives: 'Develop critical emergency response and trauma care skills',
-    curriculum: ['Trauma Assessment', 'Emergency Procedures', 'Critical Care', 'Emergency Pharmacology'],
-    rating: 4.6,
-    status: 'Active',
-    startDate: '2024-02-15',
-    endDate: '2024-03-29',
-    materials: 8,
-    completionRate: 78
-  },
-  {
-    id: 3,
-    title: 'Pediatric Care',
-    duration: '10 weeks',
-    mode: 'Online',
-    totalSessions: 20,
-    traineesEnrolled: 32,
-    assignedTrainers: ['Dr. Hassan Raza', 'Dr. Aisha Malik'],
-    objectives: 'Comprehensive pediatric healthcare and development knowledge',
-    curriculum: ['Child Development', 'Pediatric Diseases', 'Vaccination Protocols', 'Family Counseling'],
-    rating: 4.9,
-    status: 'Completed',
-    startDate: '2023-12-01',
-    endDate: '2024-02-10',
-    materials: 15,
-    completionRate: 95
-  },
-  {
-    id: 4,
-    title: 'Basic Surgery',
-    duration: '12 weeks',
-    mode: 'Hybrid',
-    totalSessions: 24,
-    traineesEnrolled: 16,
-    assignedTrainers: ['Dr. Ayesha Malik'],
-    objectives: 'Foundation surgical skills and operating room procedures',
-    curriculum: ['Surgical Anatomy', 'Sterile Techniques', 'Basic Procedures', 'Post-op Care'],
-    rating: 4.4,
-    status: 'Planning',
-    startDate: '2024-04-01',
-    endDate: '2024-06-24',
-    materials: 10,
-    completionRate: 0
-  }
-];
-
-const trainers = [
-  'Dr. Ahmed Hassan',
-  'Dr. Fatima Sheikh',
-  'Dr. Hassan Raza',
-  'Dr. Ayesha Malik',
-  'Dr. Sarah Khan',
-  'Dr. Omar Malik'
-];
+// Demo course data removed; fetch from courses API when available.
+const coursesData: any[] = [];
+const trainers: string[] = [];
 
 export function CoursesModule() {
   const [selectedCourse, setSelectedCourse] = useState<any>(null);

@@ -3,29 +3,10 @@ import { Badge } from '../ui/badge';
 import { Scissors, Clock, TrendingUp, AlertCircle } from 'lucide-react';
 import { BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 
-const surgeriesPerDepartmentData = [
-  { department: 'Cardiology', scheduled: 45, completed: 42, cancelled: 3 },
-  { department: 'Orthopedics', scheduled: 38, completed: 35, cancelled: 3 },
-  { department: 'Neurology', scheduled: 25, completed: 23, cancelled: 2 },
-  { department: 'General Surgery', scheduled: 67, completed: 61, cancelled: 6 },
-  { department: 'Pediatric', scheduled: 22, completed: 20, cancelled: 2 },
-];
-
-const appointmentWaitTimesData = [
-  { month: 'Jan', average: 28, target: 25 },
-  { month: 'Feb', average: 32, target: 25 },
-  { month: 'Mar', average: 26, target: 25 },
-  { month: 'Apr', average: 24, target: 25 },
-  { month: 'May', average: 29, target: 25 },
-  { month: 'Jun', average: 23, target: 25 },
-];
-
-const upcomingSurgeries = [
-  { patient: 'John Smith', procedure: 'Cardiac Bypass', department: 'Cardiology', time: '08:30 AM', status: 'scheduled' },
-  { patient: 'Maria Garcia', procedure: 'Knee Replacement', department: 'Orthopedics', time: '10:15 AM', status: 'prep' },
-  { patient: 'Robert Johnson', procedure: 'Appendectomy', department: 'General Surgery', time: '02:00 PM', status: 'scheduled' },
-  { patient: 'Sarah Williams', procedure: 'Brain Tumor Removal', department: 'Neurology', time: '03:30 PM', status: 'prep' },
-];
+// Demo service data removed. Populate from surgery/appointments APIs.
+const surgeriesPerDepartmentData: any[] = [];
+const appointmentWaitTimesData: any[] = [];
+const upcomingSurgeries: any[] = [];
 
 export function HospitalServicesModule() {
   return (

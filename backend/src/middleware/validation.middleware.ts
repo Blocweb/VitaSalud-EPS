@@ -26,6 +26,16 @@ export const validateRegister = [
   body('last_name').trim().notEmpty(),
 ];
 
+export const validateForgotPassword = [
+  body('email').isEmail().normalizeEmail(),
+];
+
+export const validateResetPassword = [
+  body('email').isEmail().normalizeEmail(),
+  body('code').isLength({ min: 6, max: 6 }).matches(/^[0-9]{6}$/),
+  body('new_password').isLength({ min: 8 }),
+];
+
 export const validatePatient = [
   body('first_name').trim().notEmpty(),
   body('last_name').trim().notEmpty(),
@@ -46,6 +56,8 @@ export default {
   validate,
   validateLogin,
   validateRegister,
+  validateForgotPassword,
+  validateResetPassword,
   validatePatient,
   validateAppointment,
 };

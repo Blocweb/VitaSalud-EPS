@@ -9,20 +9,8 @@ import { Textarea } from '../ui/textarea';
 import { CalendarPlus, ArrowLeft } from 'lucide-react';
 import { appointmentsApi, doctorsApi, getApiErrorMessage, patientsApi, type Doctor } from '../../lib/api';
 
-const horasDisponibles = [
-  { value: '08:00', label: '8:00 AM' },
-  { value: '08:30', label: '8:30 AM' },
-  { value: '09:00', label: '9:00 AM' },
-  { value: '09:30', label: '9:30 AM' },
-  { value: '10:00', label: '10:00 AM' },
-  { value: '10:30', label: '10:30 AM' },
-  { value: '11:00', label: '11:00 AM' },
-  { value: '14:00', label: '2:00 PM' },
-  { value: '14:30', label: '2:30 PM' },
-  { value: '15:00', label: '3:00 PM' },
-  { value: '15:30', label: '3:30 PM' },
-  { value: '16:00', label: '4:00 PM' },
-];
+// Time slot options removed; fetch available slots from appointments/schedule API.
+const horasDisponibles: { value: string; label: string }[] = [];
 
 const getTodayStr = () => new Date().toISOString().split('T')[0];
 

@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { query } from '../config/database';
 import { AppError, handleError } from '../utils/errors';
 
-const canAccessMedicalRecord = (
+const canAccessMedicalRecord = async (
   record: any,
   user: Request['user']
 ) => {
@@ -13,14 +13,32 @@ const canAccessMedicalRecord = (
     return true;
   }
 
-  // Doctor ve registros de sus pacientes
-  if (user.role === 'doctor') {
-    return String(record.doctor_user_id) === String(user.id);
-  }
-
   // Paciente ve solo sus registros
   if (user.role === 'patient') {
     return String(record.patient_user_id) === String(user.id);
+  }
+
+  // Doctor: puede ver registros que él haya generado O registros del paciente
+  // que tiene/tuvo una cita con ese doctor (permitir revisar historial antes/tras cita)
+  if (user.role === 'doctor') {
+    if (String(record.doctor_user_id) === String(user.id)) return true;
+
+    // Buscar si existe alguna cita del paciente con este doctor
+    try {
+      const appt = await query(
+        `SELECT 1 FROM appointments a
+         JOIN doctors d ON a.doctor_id = d.id
+         WHERE a.patient_id = $1
+         AND d.user_id = $2
+         AND a.deleted_at IS NULL
+         LIMIT 1`,
+        [record.patient_id, user.id]
+      );
+
+      return appt.rows.length > 0;
+    } catch (e) {
+      return false;
+    }
   }
 
   return false;
@@ -52,8 +70,16 @@ export const getMedicalRecords = async (req: Request, res: Response) => {
       // Admin ve todo
       sql += `ORDER BY m.visit_date DESC`;
     } else if (req.user.role === 'doctor') {
-      // Doctor ve solo sus registros
-      sql += `AND d.user_id = $1 ORDER BY m.visit_date DESC`;
+      // Doctor ve registros que él generó O registros de pacientes que tienen/tenían cita con él
+      sql += `AND (
+                d.user_id = $1
+                OR m.patient_id IN (
+                  SELECT a.patient_id FROM appointments a
+                  JOIN doctors dd ON a.doctor_id = dd.id
+                  WHERE dd.user_id = $1 AND a.deleted_at IS NULL
+                )
+              )
+              ORDER BY m.visit_date DESC`;
       values.push(req.user.id);
     } else if (req.user.role === 'patient') {
       // Paciente ve solo sus registros
@@ -105,7 +131,7 @@ export const getMedicalRecordById = async (req: Request, res: Response) => {
       throw new AppError(404, 'Medical record not found');
     }
 
-    if (!canAccessMedicalRecord(result.rows[0], req.user)) {
+    if (!(await canAccessMedicalRecord(result.rows[0], req.user))) {
       throw new AppError(403, 'Insufficient permissions');
     }
 
@@ -140,9 +166,28 @@ export const getMedicalRecordsByPatient = async (req: Request, res: Response) =>
       throw new AppError(404, 'Patient not found');
     }
 
-    // Validar permisos
+    // Validar permisos: pacientes solo sus propios registros
     if (req.user.role === 'patient') {
       if (String(patientCheck.rows[0].user_id) !== String(req.user.id)) {
+        throw new AppError(403, 'Insufficient permissions');
+      }
+    }
+
+    // Si es doctor, permitir solo si tiene una cita con el paciente o es el autor de registros
+    if (req.user.role === 'doctor') {
+      // Verificar si el doctor tiene alguna cita con el paciente
+      const apptCheck = await query(
+        `SELECT 1 FROM appointments a
+         JOIN doctors d ON a.doctor_id = d.id
+         WHERE a.patient_id = $1
+         AND d.user_id = $2
+         AND a.deleted_at IS NULL
+         LIMIT 1`,
+        [patientId, req.user.id]
+      );
+
+      if (apptCheck.rows.length === 0) {
+        // No tiene citas; denegar acceso
         throw new AppError(403, 'Insufficient permissions');
       }
     }

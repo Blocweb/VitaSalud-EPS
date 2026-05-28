@@ -6,48 +6,11 @@ import { CalendarDays, Pill, Bell, CalendarPlus, FileText, Heart, Users, Activit
 import { useNavigate } from 'react-router';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pie } from 'recharts';
 import { useAuth } from '../../context/AuthContext';
-import { appointmentsApi, doctorsApi, getApiErrorMessage, medicalRecordsApi, patientsApi, type Appointment, type MedicalRecord } from '../../lib/api';
+import { appointmentsApi, doctorsApi, getApiErrorMessage, medicalRecordsApi, patientsApi, prescriptionsApi, type Appointment, type MedicalRecord } from '../../lib/api';
+import { PanelAdminScreen } from './PanelAdminScreen';
 
-const stats = [
-  { title: 'Proximas Citas', value: '3', icon: CalendarDays, color: '#1E88E5', bg: '#E3F2FD' },
-  { title: 'Tratamientos Activos', value: '2', icon: Pill, color: '#43A047', bg: '#E8F5E9' },
-  { title: 'Notificaciones', value: '5', icon: Bell, color: '#E53935', bg: '#FFEBEE' },
-  { title: 'Consultas este mes', value: '4', icon: Activity, color: '#FF8F00', bg: '#FFF8E1' },
-];
-
-const proximasCitas = [
-  { id: 1, doctor: 'Dr. Martinez', especialidad: 'Cardiologia', fecha: 'Lun 10 Mar', hora: '10:00 AM', estado: 'Confirmada' },
-  { id: 2, doctor: 'Dra. Rodriguez', especialidad: 'Dermatologia', fecha: 'Mie 12 Mar', hora: '2:30 PM', estado: 'Pendiente' },
-  { id: 3, doctor: 'Dr. Lopez', especialidad: 'Medicina General', fecha: 'Vie 14 Mar', hora: '9:00 AM', estado: 'Confirmada' },
-];
-
-const tratamientosActivos = [
-  { id: 1, nombre: 'Tratamiento Hipertension', medico: 'Dr. Martinez', duracion: '3 meses', progreso: 65 },
-  { id: 2, nombre: 'Control Dermatologico', medico: 'Dra. Rodriguez', duracion: '1 mes', progreso: 30 },
-];
-
-const notificaciones = [
-  { msg: 'Recordatorio: Cita con Dr. Martinez en 2 dias', time: 'Hace 1h', type: 'cita' },
-  { msg: 'Resultado de laboratorio disponible', time: 'Hace 3h', type: 'resultado' },
-  { msg: 'Tratamiento de hipertension: tomar medicamento', time: 'Hace 5h', type: 'tratamiento' },
-  { msg: 'Nueva recomendacion de su medico', time: 'Hace 1 dia', type: 'recomendacion' },
-];
-
-const chartData = [
-  { mes: 'Oct', citas: 3 },
-  { mes: 'Nov', citas: 5 },
-  { mes: 'Dic', citas: 2 },
-  { mes: 'Ene', citas: 4 },
-  { mes: 'Feb', citas: 3 },
-  { mes: 'Mar', citas: 4 },
-];
-
-const pieData = [
-  { name: 'Cardiologia', value: 4, fill: '#1E88E5' },
-  { name: 'Dermatologia', value: 2, fill: '#64B5F6' },
-  { name: 'General', value: 6, fill: '#43A047' },
-  { name: 'Laboratorio', value: 3, fill: '#FDD835' },
-];
+// All dashboard data should come from the backend via APIs.
+// Static demo arrays removed.
 
 export function DashboardScreen() {
   const navigate = useNavigate();
@@ -55,6 +18,14 @@ export function DashboardScreen() {
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [error, setError] = useState('');
+  const [notifications, setNotifications] = useState<{msg:string,time:string,type:string}[]>([]);
+  const [tratamientosActivos, setTratamientosActivos] = useState<{id:number; nombre:string; medico:string; duracion:string; progreso:number}[]>([]);
+  const [chartData, setChartData] = useState<any[]>([]);
+  const [pieData, setPieData] = useState<any[]>([]);
+
+  if (user?.role === 'admin') {
+    return <PanelAdminScreen />;
+  }
 
   useEffect(() => {
     let ignore = false;
@@ -85,6 +56,51 @@ export function DashboardScreen() {
         if (!ignore) {
           setAppointments(dashboardAppointments);
           setRecords(dashboardRecords);
+
+          // Obtener recetas para derivar 'Tratamientos Activos' y notificaciones simples
+          try {
+            const prescriptions = user?.role === 'patient'
+              ? await prescriptionsApi.byPatient((await patientsApi.me()).id)
+              : await prescriptionsApi.list();
+
+            // Notificaciones simplificadas: receta reciente o resultado
+            const notes = prescriptions.slice(0, 5).map((p: any) => ({ msg: `Receta: ${p.prescription_number}`, time: p.prescription_date?.slice(0,10) || '', type: 'prescription' }));
+            setNotifications(notes);
+
+            const activos = prescriptions
+              .filter((p: any) => p.is_active)
+              .slice(0, 4)
+              .map((p: any) => ({
+                id: p.id,
+                nombre: p.diagnosis || p.prescription_number || 'Tratamiento',
+                medico: p.doctor_name || 'Medico asignado',
+                duracion: p.prescription_date?.slice(0, 10) || '',
+                progreso: p.dispensed ? 100 : 50,
+              }));
+            setTratamientosActivos(activos);
+
+            // Chart data: citas por mes
+            const monthsMap: Record<string, number> = {};
+            dashboardAppointments.forEach((a: Appointment) => {
+              const month = a.appointment_date?.slice(5,7);
+              if (!month) return;
+              monthsMap[month] = (monthsMap[month] || 0) + 1;
+            });
+            const chart = Object.keys(monthsMap).sort().map((m) => ({ mes: m, citas: monthsMap[m] }));
+            setChartData(chart);
+
+            // Pie data: especialidades
+            const specMap: Record<string, number> = {};
+            dashboardAppointments.forEach((a: Appointment) => {
+              const spec = a.specialization || a.appointment_type || 'Otros';
+              specMap[spec] = (specMap[spec] || 0) + 1;
+            });
+            const pie = Object.entries(specMap).map(([name, value]) => ({ name, value }));
+            setPieData(pie);
+          } catch (e) {
+            setNotifications([]);
+            setTratamientosActivos([]);
+          }
         }
       } catch (err) {
         if (!ignore) setError(getApiErrorMessage(err));
@@ -124,11 +140,11 @@ export function DashboardScreen() {
 
     return [
       { title: 'Proximas Citas', value: String(activeAppointments.length), icon: CalendarDays, color: '#1E88E5', bg: '#E3F2FD' },
-      { title: 'Tratamientos Activos', value: '2', icon: Pill, color: '#43A047', bg: '#E8F5E9' },
-      { title: 'Notificaciones', value: String(notificaciones.length), icon: Bell, color: '#E53935', bg: '#FFEBEE' },
+      { title: 'Tratamientos Activos', value: String(tratamientosActivos.length), icon: Pill, color: '#43A047', bg: '#E8F5E9' },
+      { title: 'Notificaciones', value: String(notifications.length), icon: Bell, color: '#E53935', bg: '#FFEBEE' },
       { title: 'Consultas este mes', value: String(monthlyRecords.length), icon: Activity, color: '#FF8F00', bg: '#FFF8E1' },
     ];
-  }, [appointments, records, today]);
+  }, [appointments, records, today, notifications, tratamientosActivos]);
 
   return (
     <div className="space-y-6">
@@ -238,12 +254,15 @@ export function DashboardScreen() {
             <CardTitle className="flex items-center gap-2 text-[#212121]">
               <Bell className="h-5 w-5 text-[#E53935]" />
               Notificaciones
-              <Badge className="bg-[#FFEBEE] text-[#E53935] ml-auto">{notificaciones.length}</Badge>
+              <Badge className="bg-[#FFEBEE] text-[#E53935] ml-auto">{notifications.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {notificaciones.map((n, i) => (
+              {notifications.length === 0 && (
+                <p className="text-sm text-[#616161] p-3 bg-[#F5F7FA] rounded-lg">No hay notificaciones.</p>
+              )}
+              {notifications.map((n, i) => (
                 <div key={i} className="p-2.5 bg-[#F5F7FA] rounded-lg">
                   <p className="text-xs text-[#212121]">{n.msg}</p>
                   <p className="text-xs text-[#9E9E9E] mt-1">{n.time}</p>
@@ -254,46 +273,57 @@ export function DashboardScreen() {
         </Card>
       </div>
 
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-[#212121]">Citas por Mes</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={200}>
-              <BarChart data={chartData}>
-                <XAxis dataKey="mes" tick={{ fill: '#616161', fontSize: 12 }} />
-                <YAxis tick={{ fill: '#616161', fontSize: 12 }} />
-                <Tooltip />
-                <Bar dataKey="citas" fill="#1E88E5" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
+      {/* Charts (no mostrar a pacientes) */}
+      {user?.role !== 'patient' && (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-[#212121]">Citas por Mes</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={chartData.length ? chartData : [{ mes: '', citas: 0 }]}>
+                  <XAxis dataKey="mes" tick={{ fill: '#616161', fontSize: 12 }} />
+                  <YAxis tick={{ fill: '#616161', fontSize: 12 }} />
+                  <Tooltip />
+                  <Bar dataKey="citas" fill="#1E88E5" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
 
-        <Card className="border-0 shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-[#212121]">Consultas por Especialidad</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-center gap-6">
-              <PieChart width={160} height={160}>
-                <Pie data={pieData} cx="50%" cy="50%" outerRadius={70} dataKey="value" nameKey="name" />
-                <Tooltip />
-              </PieChart>
-              <div className="space-y-2">
-                {pieData.map((item) => (
-                  <div key={item.name} className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
-                    <span className="text-xs text-[#616161]">{item.name} ({item.value})</span>
-                  </div>
-                ))}
+          <Card className="border-0 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-[#212121]">Consultas por Especialidad</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-center gap-6">
+                <PieChart width={160} height={160}>
+                  <Pie
+                    data={pieData.length ? pieData : [{ name: 'Sin datos', value: 1, fill: '#E0E0E0' }]}
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={70}
+                    dataKey="value"
+                    nameKey="name"
+                  />
+                  <Tooltip />
+                </PieChart>
+                <div className="space-y-2">
+                  {pieData.map((item) => (
+                    <div key={item.name} className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.fill }} />
+                      <span className="text-xs text-[#616161]">
+                        {item.name} ({item.value})
+                      </span>
+                    </div>
+                  ))}
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Tratamientos Activos */}
       <Card className="border-0 shadow-sm">
@@ -310,6 +340,9 @@ export function DashboardScreen() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {tratamientosActivos.length === 0 && (
+              <p className="text-sm text-[#616161] p-3 bg-[#F5F7FA] rounded-lg col-span-full">No hay tratamientos activos.</p>
+            )}
             {tratamientosActivos.map((t) => (
               <div key={t.id} className="p-4 bg-[#F5F7FA] rounded-xl">
                 <div className="flex items-start justify-between mb-3">

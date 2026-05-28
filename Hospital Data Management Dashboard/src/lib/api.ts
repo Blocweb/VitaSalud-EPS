@@ -72,6 +72,16 @@ export interface Doctor {
   department_name?: string;
 }
 
+export interface Department {
+  id: number;
+  name: string;
+  description?: string | null;
+  floor_number?: number | null;
+  phone?: string | null;
+  email?: string | null;
+  is_active?: boolean;
+}
+
 export interface Appointment {
   id: string;
   appointment_number?: string;
@@ -153,7 +163,16 @@ export const authStorage = {
 };
 
 export function getApiErrorMessage(error: unknown) {
-  if (error instanceof ApiError) return error.message;
+  if (error instanceof ApiError) {
+    // Si el backend incluye detalles de validación, mostrarlos
+    const details: any = error.details;
+    if (details && Array.isArray(details.errors) && details.errors.length > 0) {
+      return details.errors.map((e: any) => `${e.param}: ${e.msg}`).join('; ');
+    }
+
+    return error.message || 'No se pudo completar la solicitud';
+  }
+
   if (error instanceof Error) return error.message;
   return 'No se pudo completar la solicitud';
 }
@@ -205,6 +224,18 @@ export const authApi = {
       body: JSON.stringify(payload),
     });
   },
+  forgotPassword(email: string) {
+    return apiRequest<{ success: boolean; message: string }>('/auth/forgot-password', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  },
+  resetPassword(payload: { email: string; code: string; new_password: string }) {
+    return apiRequest<{ success: boolean; message: string }>('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
   verify() {
     return apiRequest<{ success: boolean; message: string; user: AuthUser }>('/auth/verify');
   },
@@ -229,6 +260,33 @@ export const patientsApi = {
 export const doctorsApi = {
   list() {
     return apiData<Doctor[]>('/doctors');
+  },
+  create(payload: {
+    email: string;
+    password: string;
+    first_name: string;
+    last_name: string;
+    phone?: string;
+    department_id?: number | null;
+    license_number: string;
+    specialization: string;
+    qualification?: string;
+    experience_years?: number;
+    consultation_fee?: number;
+    available_for_emergency?: boolean;
+    biography?: string;
+    languages_spoken?: string;
+  }) {
+    return apiData<any>('/doctors', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+  },
+};
+
+export const departmentsApi = {
+  list() {
+    return apiData<Department[]>('/departments');
   },
 };
 
@@ -292,5 +350,46 @@ export const medicalRecordsApi = {
   },
   get(id: string) {
     return apiData<MedicalRecord>(`/medical-records/${id}`);
+  },
+};
+
+export const prescriptionsApi = {
+  list() {
+    return apiData<any[]>('/prescriptions');
+  },
+  byPatient(patientId: string) {
+    return apiData<any[]>(`/prescriptions/patient/${patientId}`);
+  },
+  byDoctor(doctorId: string) {
+    return apiData<any[]>(`/prescriptions/doctor/${doctorId}`);
+  },
+  get(id: string) {
+    return apiData<any>(`/prescriptions/${id}`);
+  },
+};
+
+export const settingsApi = {
+  getEmailConfig() {
+    return apiRequest<{ success: boolean; data: { host?: string; port?: number; user?: string; from?: string; secure?: boolean } }>(
+      '/settings/email'
+    );
+  },
+  saveEmailConfig(payload: { host: string; port: number; user: string; pass: string; from: string; secure: boolean }) {
+    return apiRequest<{ success: boolean; message: string }>(
+      '/settings/email',
+      {
+        method: 'PUT',
+        body: JSON.stringify(payload),
+      }
+    );
+  },
+  testEmail(payload: { to: string; host?: string; port?: number; user?: string; pass?: string; from?: string; secure?: boolean }) {
+    return apiRequest<{ success: boolean; message: string }>(
+      '/settings/email/test',
+      {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      }
+    );
   },
 };
